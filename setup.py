@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-setup(name = 'drnuke-bean',
+setup(name = 'drnukebean',
       version = '0.1',
       description = "Dr Nukes's beancount arsenal",
       packages = ['src.drnukebean.importer'],
