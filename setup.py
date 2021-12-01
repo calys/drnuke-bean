@@ -1,10 +1,10 @@
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 
 
 setup(name = 'drnukebean',
       version = '0.1',
       description = "Dr Nukes's beancount arsenal",
-      packages = find_packages(
+      packages = find_namespace_packages(
             where='src',
             include=['drnukebean'],
       ),
