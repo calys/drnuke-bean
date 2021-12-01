@@ -4,6 +4,9 @@ from setuptools import setup, find_packages
 setup(name = 'drnukebean',
       version = '0.1',
       description = "Dr Nukes's beancount arsenal",
-      packages = find_packages(include=['src/drnukebean']),
-      package_dir = {'drnukebean': 'src/drnukebean'},
+      packages = find_packages(
+            where='src',
+            include=['drnukebean'],
+      ),
+      package_dir = {'': 'src'},
       zip_safe = False)
