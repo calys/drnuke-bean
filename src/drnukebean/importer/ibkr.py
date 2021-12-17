@@ -15,6 +15,7 @@ import warnings
 import pickle
 import re
 import numpy as np
+from os import makedirs
 
 import yaml
 from os import path
@@ -47,6 +48,7 @@ class IBKRImporter(importer.ImporterProtocol):
         FeesSuffix="Fees",
         PnLSuffix="PnL",
         fpath=None,  #
+        fpath_dump=None,  #
         depositAccount="",
         suppressClosedLotPrice=False,
     ):
@@ -60,6 +62,8 @@ class IBKRImporter(importer.ImporterProtocol):
         self.PnLSuffix = PnLSuffix
         self.filepath = fpath  # optional file path specification,
         # if flex query should not be used online (loading time...)
+        self.filepath_dump = fpath_dump  # optional file path specification
+        # to dump flex query to file
         self.depositAccount = (
             depositAccount  # Cash deposits are usually already covered
         )
@@ -153,6 +157,11 @@ class IBKRImporter(importer.ImporterProtocol):
                 # another option would be to try again
                 return []
             assert isinstance(statement, Types.FlexQueryResponse)
+            if self.filepath_dump is not None:
+                if not path.isdir(path.dirname(self.filepath_dump)):
+                    makedirs(path.dirname(self.filepath_dump))
+                with open(self.filepath_dump, "wb") as pf:
+                    pickle.dump(statement, pf)
         else:
             print("**** loading from pickle")
             with open(self.filepath, "rb") as pf:
@@ -265,10 +274,50 @@ class IBKRImporter(importer.ImporterProtocol):
             fees = self.Fee(fee)
         else:
             fees = []
+
+        adjustments = ct[ct["type"] == CashAction.COMMADJ]  # Commission adjustments only
+        if len(adjustments) > 0:
+            adjustments = self.ComAdjustment(adjustments)
+        else:
+            adjustments = []
+
         # list of transactiosn with short name
-        ctTransactions = matches + deps + ints + fees
+        ctTransactions = matches + deps + ints + fees + adjustments
 
         return ctTransactions
+
+    def ComAdjustment(self, fee):
+        # calculates fee adjustments from IBKR data
+        feeTransactions = []
+        for idx, row in fee.iterrows():
+            currency = row["currency"]
+            amount_ = amount.Amount(row["amount"], currency)
+            text = row["description"]
+
+            # make the postings, two for fees
+            postings = [
+                data.Posting(
+                    self.getFeesAccount(currency), -amount_, None, None, None, None
+                ),
+                data.Posting(
+                    self.getLiquidityAccount(currency), amount_, None, None, None, None
+                ),
+            ]
+            meta = data.new_metadata(__file__, 0, {})  # actually no metadata
+            feeTransactions.append(
+                data.Transaction(
+                    meta,
+                    row["reportDate"],
+                    self.flag,
+                    "IB",  # payee
+                    text, 
+                    data.EMPTY_SET,
+                    data.EMPTY_SET,
+                    postings,
+                )
+            )
+        return feeTransactions
+
 
     def Fee(self, fee):
         # calculates fees from IBKR data
