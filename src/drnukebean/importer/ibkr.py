@@ -40,26 +40,27 @@ class IBKRImporter(importer.ImporterProtocol):
 
     def __init__(
         self,
-        Mainaccount,  # for example Assets:Invest:IB
+        mainAccount="Assets:Investment", # for example Assets:Investment
+        brokerName="IBKR",  # for example IBKR
         currency="CHF",
-        divSuffix="Div",  # suffix for dividend Account , like Assets:Invest:IB:VT:Div
-        WHTSuffix="WTax",  #
-        interestSuffix="Interest",
-        FeesSuffix="Fees",
-        PnLSuffix="PnL",
+        divPrefixAccount="Income:Investment:Dividends",  # prefix for dividend account , leading to e.g. Income:Investment:Dividends:IBKR:VT
+        WHTPrefixAccount="Expenses:Investment:WTax",  # prefix for witholding tax account, leading to e.g. Expenses:Investment:WTax:IBKR:VT
+        interestPrefixAccount="Income:Investment:Interest", # prefix for interests account, leading to e.g. Income:Investment:Interest:IBKR:CHF
+        feesPrefixAccount="Expenses:Investment:Fees", # prefix for interests account, leading to e.g. Expenses:Investment:Fees:IBKR:CHF
+        PnLPrefixAccount="Income:Investment:PnL", # prefix for PnL account, leading to e.g. Income:Investment:PnL:IBKR:ARKK
         fpath=None,  #
         fpath_dump=None,  #
         depositAccount="",
         suppressClosedLotPrice=False,
     ):
-
-        self.Mainaccount = Mainaccount  # main IB account in beancount
+        self.mainAccount = mainAccount
+        self.brokerName = brokerName
         self.currency = currency  # main currency of IB account
-        self.divSuffix = divSuffix
-        self.WHTSuffix = WHTSuffix
-        self.interestSuffix = interestSuffix
-        self.FeesSuffix = FeesSuffix
-        self.PnLSuffix = PnLSuffix
+        self.divPrefixAccount = divPrefixAccount
+        self.WHTPrefixAccount = WHTPrefixAccount
+        self.interestPrefixAccount = interestPrefixAccount
+        self.FeesPrefixAccount = feesPrefixAccount
+        self.PnLPrefixAccount = PnLPrefixAccount
         self.filepath = fpath  # optional file path specification,
         # if flex query should not be used online (loading time...)
         self.filepath_dump = fpath_dump  # optional file path specification
@@ -77,45 +78,36 @@ class IBKRImporter(importer.ImporterProtocol):
 
     def getLiquidityAccount(self, currency):
         # Assets:Invest:IB:USD
-        return ":".join([self.Mainaccount, currency])
+        return ":".join([self.mainAccount, self.brokerName, currency])
 
     def getDivIncomeAcconut(self, currency, symbol):
-        # Income:Invest:IB:VTI:Div
+        # Income:Investment:Dividends:IBKR:VT
         return ":".join(
-            [self.Mainaccount.replace("Assets", "Income"), symbol, self.divSuffix]
+            [self.divPrefixAccount, self.brokerName, symbol]
         )
-
     def getInterestIncomeAcconut(self, currency):
-        # Income:Invest:IB:USD
+        # Income:Investment:Interest:IBKR:CHF
         return ":".join(
-            [
-                self.Mainaccount.replace("Assets", "Income"),
-                self.interestSuffix,
-                currency,
-            ]
+            [self.interestPrefixAccount, self.brokerName, currency]
         )
-
     def getAssetAccount(self, symbol):
-        # Assets:Invest:IB:VTI
-        return ":".join([self.Mainaccount, symbol])
+        # Assets:Investment:IBKR:VTI
+        return ":".join([self.mainAccount, self.brokerName, symbol])
 
     def getWHTAccount(self, symbol):
-        # Expenses:Invest:IB:VTI:WTax
+        # Expenses:Investment:WTax:IBKR:VT
         return ":".join(
-            [self.Mainaccount.replace("Assets", "Expenses"), symbol, self.WHTSuffix]
+            [self.WHTPrefixAccount, self.brokerName, symbol]
         )
-
     def getFeesAccount(self, currency):
-        # Expenses:Invest:IB:Fees:USD
+        # Expenses:Investment:Fees:IBKR:CHF
         return ":".join(
-            [self.Mainaccount.replace("Assets", "Expenses"), self.FeesSuffix, currency]
+            [self.FeesPrefixAccount, self.brokerName, currency]
         )
 
     def getPNLAccount(self, symbol):
-        # Expenses:Invest:IB:Fees:USD
-        return ":".join(
-            [self.Mainaccount.replace("Assets", "Income"), symbol, self.PnLSuffix]
-        )
+        # Income:Investment:PnL:IBKR:ARKK
+        return ":".join([self.PnLPrefixAccount, self.brokerName, symbol])
 
     def file_account(self, _):
         return self.account
