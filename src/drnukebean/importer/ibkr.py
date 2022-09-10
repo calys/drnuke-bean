@@ -55,6 +55,7 @@ class IBKRImporter(importer.ImporterProtocol):
     ):
         self.mainAccount = mainAccount
         self.brokerName = brokerName
+        self.account = ':'.join([mainAccount, brokerName])
         self.currency = currency  # main currency of IB account
         self.divPrefixAccount = divPrefixAccount
         self.WHTPrefixAccount = WHTPrefixAccount
